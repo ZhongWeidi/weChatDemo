@@ -153,7 +153,7 @@
         DGChatTableViewCell * cell = [tableView cellForRowAtIndexPath:indexPath];
         
         DGImageViewerView * imageViewer = [[DGImageViewerView alloc] initWithFrame:self.view.bounds];
-        imageViewer.imageForViews = @[cell.contentImageView];
+        imageViewer.imageForViews = @[cell.backgourdImageView];
         imageViewer.showIndex = 0;
         imageViewer.imagePahts = @[info.content];
         

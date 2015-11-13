@@ -63,15 +63,6 @@ static  CGFloat _ContentSpace = 70.0f;//内容距边界间隙
     
 }
 #pragma mark - get
-- (DGMessageImageView *)contentImageView{
-    if (!_contentImageView) {
-        _contentImageView = [[DGMessageImageView alloc] init];
-        UITapGestureRecognizer * tap = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(tapGestureRecognizerWithContentImageView:)];
-        [_contentImageView addGestureRecognizer:tap];
-        [self.contentView addSubview:_contentImageView];
-    }
-    return _contentImageView;
-}
 
 //文本消息
 - (UILabel *)messageLabel{
@@ -138,12 +129,10 @@ static  CGFloat _ContentSpace = 70.0f;//内容距边界间隙
     
     if (isRight) {
         self.backgourdImageView.color = RIGHT_BUBBLE_COLOR;
-        self.contentImageView.color = RIGHT_BUBBLE_COLOR;
         rect.origin.x = SCREEN_WIDTH - rect.size.width - _headerImageSpace;
     }
     else{
         self.backgourdImageView.color = LEFT_BUBBLE_COROL;
-        self.contentImageView.color = LEFT_BUBBLE_COROL;
 
         rect.origin.x = _headerImageSpace;
     }
@@ -160,8 +149,7 @@ static  CGFloat _ContentSpace = 70.0f;//内容距边界间隙
         case DGMessageTypeText:
         {
             self.messageLabel.hidden = NO;
-            self.backgourdImageView.hidden = NO;
-            self.contentImageView.hidden = YES;
+            
             self.messageLabel.text = self.message.content;
         }
             break;
@@ -169,13 +157,12 @@ static  CGFloat _ContentSpace = 70.0f;//内容距边界间隙
         case DGMessageTypeImage:
         {
             self.messageLabel.hidden = YES;
-            self.backgourdImageView.hidden = YES;
-            self.contentImageView.hidden = NO;
-            self.contentImageView.image = [UIImage imageWithContentsOfFile:self.message.content];
-            self.contentImageView.isRight = self.message.isRight;
-            self.contentImageView.type = DGMessageTypeImage;
-            self.contentImageView.frame = [DGChatTableViewCell contentImageRect:self.contentImageView.image];
-            [self imageTypeWithView:self.contentImageView];
+            
+            self.backgourdImageView.image = [UIImage imageWithContentsOfFile:self.message.content];
+            self.backgourdImageView.isRight = self.message.isRight;
+            self.backgourdImageView.type = DGMessageTypeImage;
+            self.backgourdImageView.frame = [DGChatTableViewCell contentImageRect:self.backgourdImageView.image];
+            [self imageTypeWithView:self.backgourdImageView];
         }
             
             break;
@@ -183,16 +170,14 @@ static  CGFloat _ContentSpace = 70.0f;//内容距边界间隙
         case DGMessageTypeVideo:
         {
             self.messageLabel.hidden = YES;
-            self.backgourdImageView.hidden = YES;
-            self.contentImageView.hidden = NO;
 
             NSURL * url = [NSURL fileURLWithPath:self.message.content];
             UIImage * image = [DGMessageImageView thumbnailImageForVideo:url atTime:0];
-            self.contentImageView.image = image;
-            self.contentImageView.isRight = self.message.isRight;
-            self.contentImageView.type = DGMessageTypeVideo;
-            self.contentImageView.frame = [DGChatTableViewCell contentImageRect:self.contentImageView.image];
-            [self imageTypeWithView:self.contentImageView];
+            self.backgourdImageView.image = image;
+            self.backgourdImageView.isRight = self.message.isRight;
+            self.backgourdImageView.type = DGMessageTypeVideo;
+            self.backgourdImageView.frame = [DGChatTableViewCell contentImageRect:self.backgourdImageView.image];
+            [self imageTypeWithView:self.backgourdImageView];
         
         }
             
@@ -206,9 +191,6 @@ static  CGFloat _ContentSpace = 70.0f;//内容距边界间隙
         case DGMessageTypeAudion:
         {
             self.messageLabel.hidden = YES;
-            self.backgourdImageView.hidden = NO;
-            self.contentImageView.hidden = YES;
-            
             self.backgourdImageView.image = [UIImage new];
             self.backgourdImageView.isRight = self.message.isRight;
             self.backgourdImageView.type = DGMessageTypeAudion;
@@ -388,7 +370,6 @@ static  CGFloat _ContentSpace = 70.0f;//内容距边界间隙
 
 - (void)dealloc{
     [self.messageLabel removeObserver:self forKeyPath:@"text"];
-    _contentImageView = nil;
     _backgourdImageView = nil;
     _messageLabel =nil;
     _message = nil;

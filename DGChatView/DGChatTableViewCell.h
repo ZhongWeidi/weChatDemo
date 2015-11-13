@@ -44,8 +44,6 @@
 
 @property (assign , nonatomic) DGMessageType messageType;
 
-@property (strong , nonatomic)DGMessageImageView * contentImageView;//图片内容
-
 
 @property (strong , nonatomic)DGMessageImageView * backgourdImageView;//背景图
 
