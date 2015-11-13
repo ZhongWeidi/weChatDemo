@@ -1,0 +1,28 @@
+//
+//  DGPrefixHeader.pch
+//  weChatDemo
+//
+//  Created by 钟伟迪 on 15/11/8.
+//  Copyright © 2015年 钟伟迪. All rights reserved.
+//
+
+#ifndef DGPrefixHeader_pch
+#define DGPrefixHeader_pch
+
+// Include any system framework and library headers here that should be included in all compilation units.
+// You will also need to set the Prefix Header build setting of one or more of your targets to reference this file.
+
+//消息类型
+#import <Foundation/Foundation.h>
+
+typedef NS_ENUM(NSInteger , DGMessageType) {
+    DGMessageTypeText   = 0, //文本
+    DGMessageTypeImage  = 1, //图片
+    DGMessageTypeAudion = 2, //音频
+    DGMessageTypeDate   = 3, //时间
+    DGMessageTypeVideo  = 4  //视频
+};
+
+
+
+#endif /* DGPrefixHeader_pch */
