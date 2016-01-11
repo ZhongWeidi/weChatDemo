@@ -43,8 +43,6 @@
         self.backgroundColor = [UIColor clearColor];
         _image = [UIImage new];
         startX = 10.0f;//开始位置
-
-
     }
     return self;
 }
@@ -62,11 +60,12 @@
     }
     
     if (_image.size.width != 0 && rect.size.width != 0) {
-        imageRatio = _image.size.width/rect.size.width; //视图与图片的大小比例
+        imageRatio = imageRect.size.height/rect.size.height; //视图与图片的大小比例
     }
     
     _cornerRadius = 8.0f*imageRatio;//圆角度数
     startX = 10.0f*imageRatio;//开始位置
+    
     
     bezierPath = [UIBezierPath bezierPath];
     
@@ -88,6 +87,7 @@
     
     //添加小箭头
     CGFloat arrowsSpace = 7.0f*imageRatio;//箭头箭度
+    
     [bezierPath addLineToPoint:CGPointMake(startX,  imageRect.size.height - (_cornerRadius + self.arrowsStart - arrowsSpace))];
     [bezierPath addLineToPoint:CGPointMake(0,  imageRect.size.height - (_cornerRadius + self.arrowsStart))];
     [bezierPath addLineToPoint:CGPointMake(startX, imageRect.size.height - ( _cornerRadius + self.arrowsStart +arrowsSpace))];
@@ -109,42 +109,7 @@
         self.imageView.image = image;
     }
     
-
-    //根据不同模式调整位置
-    [self updateFrame];
 }
-
-//根据不同模式调整位置
-- (void)updateFrame{
-    
-    /////////////////////////////////////
-    if (self.type == DGMessageTypeVideo) {
-        self.playImageView.hidden = NO;
-        self.audioImageView.hidden = YES;
-        
-        
-    }else if(self.type == DGMessageTypeAudion){
-        self.playImageView.hidden = YES;
-        self.audioImageView.hidden = NO;
-        
-    }else{
-        
-        self.playImageView.hidden = YES;
-        self.audioImageView.hidden = YES;
-    }
-    //////////////////////////////////////
-    
-    if (self.isRight) {
-        self.audioImageView.transform = CGAffineTransformMakeScale(-1,1);
-        self.audioImageView.center = CGPointMake(self.frame.size.width - self.audioImageView.frame.size.width- 10, 20);
-
-    }else{
-        self.audioImageView.center = CGPointMake(40, 20);
-        self.audioImageView.transform = CGAffineTransformMakeScale(1,1);
-
-    }
-}
-
 
 
 - (CGFloat)arrowsStart{
@@ -153,8 +118,6 @@
     }
     return  _arrowsStart *imageRatio;//箭头起始y位置
 }
-
-
 
 
 - (UIImageView *)imageView{
@@ -167,6 +130,7 @@
     }
     return _imageView;
 }
+
 
 - (UIColor *)color{
     if (_color == nil) {
@@ -205,7 +169,7 @@
 - (UIImageView *)audioImageView{
     if (!_audioImageView) {
         _audioImageView = [[UIImageView alloc] init];
-        _audioImageView.image = [UIImage imageNamed:@"yu1"];
+        _audioImageView.image = [UIImage imageNamed:@"yu3"];
         _audioImageView.frame = CGRectMake(0, 0, 20, 20);
         _audioImageView.center = CGPointMake(40, 20);
         _audioImageView.contentMode =UIViewContentModeCenter;
@@ -231,32 +195,77 @@
 }
 
 
+@end
 
-- (void)setContentMode:(UIViewContentMode)contentMode{
-    [super setContentMode:contentMode];
-    self.imageView.contentMode = contentMode;
+
+@implementation DGMessageImageView (DownloadImage)
+
+#pragma mark - 取得视频的第一帧
++ (void)thumbnailImageForVideo:(NSURL *)videoURL atTime:(NSTimeInterval)time withImage:(download)download{
+    
+    
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+       
+        
+        
+        NSString * documentPathString  =[DGMessageImageView documentPath];
+        
+        NSString * imagePath = [documentPathString stringByAppendingPathComponent:[videoURL lastPathComponent]];
+        
+        
+        NSFileManager * fileManager = [NSFileManager defaultManager];
+        
+        if ([fileManager fileExistsAtPath:imagePath]) {
+            UIImage * image = [UIImage imageWithContentsOfFile:imagePath];
+            
+            dispatch_async(dispatch_get_main_queue(), ^{
+                download(image);
+            });
+            
+            return ;
+        }
+
+        
+        
+        AVURLAsset *asset = [[AVURLAsset alloc] initWithURL:videoURL options:nil];
+        NSParameterAssert(asset);
+        AVAssetImageGenerator *assetImageGenerator = [[AVAssetImageGenerator alloc] initWithAsset:asset];
+        assetImageGenerator.appliesPreferredTrackTransform = YES;
+        assetImageGenerator.apertureMode = AVAssetImageGeneratorApertureModeEncodedPixels;
+        CGImageRef thumbnailImageRef = NULL;
+        CFTimeInterval thumbnailImageTime = time;
+        NSError *thumbnailImageGenerationError = nil;
+        thumbnailImageRef = [assetImageGenerator copyCGImageAtTime:CMTimeMake(thumbnailImageTime, 60) actualTime:NULL error:&thumbnailImageGenerationError];
+        
+        if (!thumbnailImageRef) NSLog(@"thumbnailImageGenerationError %@", thumbnailImageGenerationError);
+        
+        UIImage *thumbnailImage = thumbnailImageRef ? [[UIImage alloc] initWithCGImage:thumbnailImageRef] : nil;
+        
+        
+        if (thumbnailImage) {
+            NSData * data = UIImagePNGRepresentation(thumbnailImage);
+            [data writeToFile:imagePath atomically:YES];
+        }
+
+        
+        dispatch_async(dispatch_get_main_queue(), ^{
+            download(thumbnailImage);
+        });
+
+    });
+    
+    
+    
+    
 }
 
 
-//取得视频的第一帧
-+ (UIImage*)thumbnailImageForVideo:(NSURL *)videoURL atTime:(NSTimeInterval)time{
-    AVURLAsset *asset = [[AVURLAsset alloc] initWithURL:videoURL options:nil];
-    NSParameterAssert(asset);
-    AVAssetImageGenerator *assetImageGenerator = [[AVAssetImageGenerator alloc] initWithAsset:asset];
-    assetImageGenerator.appliesPreferredTrackTransform = YES;
-    assetImageGenerator.apertureMode = AVAssetImageGeneratorApertureModeEncodedPixels;
-    CGImageRef thumbnailImageRef = NULL;
-    CFTimeInterval thumbnailImageTime = time;
-    NSError *thumbnailImageGenerationError = nil;
-    thumbnailImageRef = [assetImageGenerator copyCGImageAtTime:CMTimeMake(thumbnailImageTime, 60) actualTime:NULL error:&thumbnailImageGenerationError];
++ (NSString *)documentPath{
     
-    if (!thumbnailImageRef) NSLog(@"thumbnailImageGenerationError %@", thumbnailImageGenerationError);
+    NSString * documentString = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) firstObject];
     
-    UIImage *thumbnailImage = thumbnailImageRef ? [[UIImage alloc] initWithCGImage:thumbnailImageRef] : nil;
+    return documentString;
     
-    return thumbnailImage;
 }
-
-
 
 @end

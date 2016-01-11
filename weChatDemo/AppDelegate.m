@@ -19,10 +19,7 @@
 
     [[UINavigationBar appearance] setBarStyle:UIBarStyleBlackTranslucent];
     [[UINavigationBar appearance] setTintColor:[UIColor whiteColor]];
-    
-    
-    
-    
+
     return YES;
 }
 

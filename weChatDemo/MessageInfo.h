@@ -21,12 +21,22 @@
 
 @interface MessageInfo : NSObject<MessageInfo>
 
-@property NSString * headerImagePath;
 
 @property BOOL isRight;
 
-@property NSString * content;
-
 @property DGMessageType type;
 
+
+@property NSString * headerImagePath;
+
+@property NSString * content;
+
+@property NSTimeInterval duration;
+
+@property BOOL isAlready;
+
+
 @end
+
+
+

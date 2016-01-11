@@ -8,6 +8,8 @@
 
 #import "DGChatTableViewCell.h"
 #import "DGMessageImageView.h"
+#import "RCLabel.h"
+#import "HtmlString.h"
 
 #define SCREEN_WIDTH [UIScreen mainScreen].bounds.size.width //屏幕宽度
 
@@ -19,8 +21,18 @@
 #endif
 
 #define DEFAULT_HEADER_NAME @"defaultHeader.jpg" //默认头像图片名
+#define UPDATA_FAIL_IMAGE  @"iconfont-jiazaishibai"//加载失败图片名
+
 #define RIGHT_BUBBLE_COLOR  [UIColor colorWithRed: 0.62 green: 0.91 blue: 0.392 alpha: 1] //右边气泡颜色
 #define LEFT_BUBBLE_COROL [UIColor colorWithWhite:1.0 alpha:1.0] //左边气泡颜色
+
+
+#define CONTENT_WIDTH  ([UIScreen mainScreen].bounds.size.width - 100.0f) //内容最大宽度
+#define IMAGE_MAX_WIDTH   ([UIScreen mainScreen].bounds.size.width - 200.0f)//图片最大宽度
+
+#define CONETNT_MIN_WIDTH 50.0f //内容最小宽度
+#define CONETNT_MAX_HEIGHT 40.0f //内容最小高度
+#define TEXT_FONT         15.0f //字体大小
 
 
 
@@ -31,8 +43,11 @@ static  CGFloat _leftOrRight = 20.0f;//气泡与文字左右间隙
 
 static  CGFloat _ContentSpace = 70.0f;//内容距边界间隙
 
+static CGFloat _videoHeight = 100.0f;//视频内容高度值
 
-@interface DGChatTableViewCell()
+static CGFloat _dateTypeHeight = 25.0f;//时间分割线高度
+
+@interface DGChatTableViewCell()<RCLabelDelegate>
 
 
 @end
@@ -65,17 +80,15 @@ static  CGFloat _ContentSpace = 70.0f;//内容距边界间隙
 #pragma mark - get
 
 //文本消息
-- (UILabel *)messageLabel{
+- (RCLabel *)messageLabel{
     if (!_messageLabel) {
-        _messageLabel =  [[UILabel alloc] initWithFrame:CGRectMake(10, 10, CONTENT_WIDTH, 30)];
+        _messageLabel =  [[RCLabel alloc] initWithFrame:CGRectMake(10, 10, CONTENT_WIDTH, 30)];
         _messageLabel.textColor = [UIColor blackColor];
         _messageLabel.font = [UIFont systemFontOfSize:TEXT_FONT];
-        _messageLabel.numberOfLines = 0;
+        _messageLabel.delegate = self;
         _messageLabel.textAlignment = NSTextAlignmentJustified;
         [self.contentView addSubview:_messageLabel];
-        [_messageLabel addObserver:self forKeyPath:@"text" options:NSKeyValueObservingOptionNew|NSKeyValueObservingOptionOld context:nil];
-        
-        
+        [_messageLabel addObserver:self forKeyPath:@"componentsAndPlainText" options:NSKeyValueObservingOptionNew|NSKeyValueObservingOptionOld context:nil];
     }
     return _messageLabel;
 }
@@ -83,7 +96,7 @@ static  CGFloat _ContentSpace = 70.0f;//内容距边界间隙
 //气泡背景图
 - (DGMessageImageView *)backgourdImageView{
     if (!_backgourdImageView) {
-        _backgourdImageView = [[DGMessageImageView alloc] initWithFrame:CGRectMake(5, 5, CONTENT_WIDTH + 30, 40)];
+        _backgourdImageView = [[DGMessageImageView alloc] initWithFrame:CGRectMake(5, 5, CONTENT_WIDTH + 30, CONETNT_MAX_HEIGHT)];
         _backgourdImageView.image = [UIImage new];
         _backgourdImageView.isRight = self.message.isRight;
         _backgourdImageView.borderColor = [UIColor grayColor];
@@ -111,16 +124,63 @@ static  CGFloat _ContentSpace = 70.0f;//内容距边界间隙
 }
 
 
+//时间分割线
+- (UILabel *)timeSeparatorLabel{
+
+    if (!_timeSeparatorLabel) {
+        
+        _timeSeparatorLabel = [[UILabel alloc] initWithFrame:CGRectMake(0, 0, 70, _dateTypeHeight)];
+        _timeSeparatorLabel.center = CGPointMake(SCREEN_WIDTH/2.0f, _dateTypeHeight/2.0f);
+        _timeSeparatorLabel.backgroundColor = [UIColor colorWithWhite:0.8 alpha:0.8];
+        _timeSeparatorLabel.layer.cornerRadius = 5.0f;
+        _timeSeparatorLabel.layer.shadowPath = [UIBezierPath bezierPathWithRoundedRect:_timeSeparatorLabel.frame cornerRadius:5.0f].CGPath;
+        _timeSeparatorLabel.layer.masksToBounds = YES;
+        _timeSeparatorLabel.textColor = [UIColor whiteColor];
+        _timeSeparatorLabel.font = [UIFont systemFontOfSize:13];
+        _timeSeparatorLabel.textAlignment = NSTextAlignmentCenter;
+        
+        [self.contentView addSubview:_timeSeparatorLabel];
+    }
+    
+    return _timeSeparatorLabel;
+}
+
+
+//音频已读标示
+- (UIView *)audioAlreadyIcon{
+   
+    if (!_audioAlreadyIcon) {
+        _audioAlreadyIcon = [UIView new];
+        CGRect rect = CGRectMake(0, 0, 10, 10);
+        
+        _audioAlreadyIcon.bounds = rect;
+        
+        _audioAlreadyIcon.layer.cornerRadius = 5.0f;
+        
+        _audioAlreadyIcon.layer.masksToBounds = YES;
+        
+        _audioAlreadyIcon.backgroundColor = [UIColor redColor];
+        
+        [self.contentView addSubview:_audioAlreadyIcon];
+    }
+    
+    return _audioAlreadyIcon;
+}
+
+
 #pragma mark - set
 - (void)setMessage:(MessageInfo *)message{
     _message = message;
     self.isRight = message.isRight;
     self.messageType = message.type;
-    self.headerImageView.image = [UIImage imageNamed:message.headerImagePath];
 }
 
 //主要设置头像位置
 - (void)setIsRight:(BOOL)isRight{
+    if (self.message.type ==DGMessageTypeDate) {
+        return;
+    }
+    
     _isRight = isRight;
     CGRect rect = self.headerImageView.frame;
     
@@ -133,24 +193,25 @@ static  CGFloat _ContentSpace = 70.0f;//内容距边界间隙
     }
     else{
         self.backgourdImageView.color = LEFT_BUBBLE_COROL;
-
         rect.origin.x = _headerImageSpace;
     }
     
+
     self.headerImageView.frame = rect;
 }
 
-
+//设置消息类型
 - (void)setMessageType:(DGMessageType)messageType{
-    
+    _messageType = messageType;
     
     switch (messageType) {
             
         case DGMessageTypeText:
         {
             self.messageLabel.hidden = NO;
-            
-            self.messageLabel.text = self.message.content;
+            NSString *transformStr = [HtmlString transformString:self.message.content];
+            RCLabelComponentsStructure *componentsDS = [RCLabel extractTextStyle:transformStr];
+            self.messageLabel.componentsAndPlainText = componentsDS;
         }
             break;
             
@@ -158,9 +219,10 @@ static  CGFloat _ContentSpace = 70.0f;//内容距边界间隙
         {
             self.messageLabel.hidden = YES;
             
-            self.backgourdImageView.image = [UIImage imageWithContentsOfFile:self.message.content];
+            
+            self.backgourdImageView.image = [UIImage imageWithContentsOfFile:self.message.content]? :[UIImage imageNamed:UPDATA_FAIL_IMAGE];
+            
             self.backgourdImageView.isRight = self.message.isRight;
-            self.backgourdImageView.type = DGMessageTypeImage;
             self.backgourdImageView.frame = [DGChatTableViewCell contentImageRect:self.backgourdImageView.image];
             [self imageTypeWithView:self.backgourdImageView];
         }
@@ -172,12 +234,16 @@ static  CGFloat _ContentSpace = 70.0f;//内容距边界间隙
             self.messageLabel.hidden = YES;
 
             NSURL * url = [NSURL fileURLWithPath:self.message.content];
-            UIImage * image = [DGMessageImageView thumbnailImageForVideo:url atTime:0];
-            self.backgourdImageView.image = image;
-            self.backgourdImageView.isRight = self.message.isRight;
-            self.backgourdImageView.type = DGMessageTypeVideo;
-            self.backgourdImageView.frame = [DGChatTableViewCell contentImageRect:self.backgourdImageView.image];
-            [self imageTypeWithView:self.backgourdImageView];
+            [DGMessageImageView thumbnailImageForVideo:url atTime:0 withImage:^(UIImage *image) {
+                self.backgourdImageView.image = image;
+                
+                CGFloat radio = image.size.height/image.size.width;
+                
+                self.backgourdImageView.isRight = self.message.isRight;
+                self.backgourdImageView.frame = CGRectMake(0, 0, _videoHeight/radio, _videoHeight);
+                [self imageTypeWithView:self.backgourdImageView];
+
+            }];
         
         }
             
@@ -185,6 +251,10 @@ static  CGFloat _ContentSpace = 70.0f;//内容距边界间隙
             
         case DGMessageTypeDate:
             
+        {
+            self.messageLabel.hidden = YES;
+            self.timeSeparatorLabel.text = self.message.content;
+        }
             
             break;
             
@@ -193,10 +263,17 @@ static  CGFloat _ContentSpace = 70.0f;//内容距边界间隙
             self.messageLabel.hidden = YES;
             self.backgourdImageView.image = [UIImage new];
             self.backgourdImageView.isRight = self.message.isRight;
-            self.backgourdImageView.type = DGMessageTypeAudion;
-            self.backgourdImageView.frame = CGRectMake(0, 0, 100, CONETNT_MAX_HEIGHT);
+            CGFloat width = [self contentWithTime:self.message.duration];
+            self.backgourdImageView.frame = CGRectMake(0, 0, width, CONETNT_MAX_HEIGHT);
             [self imageTypeWithView:self.backgourdImageView];
-
+          
+            CGFloat iconX = 0.0f;
+            if (self.message.isRight) {
+                iconX = self.backgourdImageView.frame.origin.x - 10.0f;
+            }else{
+                iconX = self.backgourdImageView.frame.origin.x + self.backgourdImageView.frame.size.width + 10.0f;
+            }
+            self.audioAlreadyIcon.center = CGPointMake(iconX, 10);
 
         }
             break;
@@ -206,9 +283,47 @@ static  CGFloat _ContentSpace = 70.0f;//内容距边界间隙
             break;
     }
     
+    self.backgourdImageView.hidden = (self.message.type == DGMessageTypeDate)? YES : NO;
+    self.timeSeparatorLabel.hidden = (self.message.type == DGMessageTypeDate)? NO  : YES;
+    self.audioAlreadyIcon.hidden =  (self.message.type == DGMessageTypeAudion)? NO : YES;
     
     
+    //更新气泡内容布局信息
+    [self updateFrame];
 }
+
+
+//更新气泡内容布局信息
+- (void)updateFrame{
+    
+    /////////////////////////////////////
+    if (self.messageType == DGMessageTypeVideo) {
+        self.backgourdImageView.playImageView.hidden = NO;
+        self.backgourdImageView.audioImageView.hidden = YES;
+        
+        
+    }else if(self.messageType == DGMessageTypeAudion){
+        self.backgourdImageView.playImageView.hidden = YES;
+        self.backgourdImageView.audioImageView.hidden = NO;
+        
+    }else{
+        
+        self.backgourdImageView.playImageView.hidden = YES;
+        self.backgourdImageView.audioImageView.hidden = YES;
+    }
+    //////////////////////////////////////
+    
+    if (self.isRight) {
+        self.backgourdImageView.audioImageView.transform = CGAffineTransformMakeScale(-1,1);
+        self.backgourdImageView.audioImageView.center = CGPointMake(self.backgourdImageView.frame.size.width - self.backgourdImageView.audioImageView.frame.size.width- 10, 20);
+        
+    }else{
+        self.backgourdImageView.audioImageView.center = CGPointMake(40, 20);
+        self.backgourdImageView.audioImageView.transform = CGAffineTransformMakeScale(1,1);
+    }
+}
+
+
 
 #pragma mark - Action
 - (void)tapGestureRecognizerWithContentImageView:(UITapGestureRecognizer *)tap{
@@ -251,8 +366,9 @@ static  CGFloat _ContentSpace = 70.0f;//内容距边界间隙
 #pragma mark - KVO
 - (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary<NSString *,id> *)change context:(void *)context{
     
-    NSString * s = self.messageLabel.text;
-    CGRect rect = [s boundingRectWithSize:CGSizeMake(CONTENT_WIDTH, MAXFLOAT) options:NSStringDrawingUsesLineFragmentOrigin attributes:@{NSFontAttributeName : [UIFont systemFontOfSize:TEXT_FONT]} context:nil];
+    CGSize optimalSize = [self.messageLabel optimumSize:YES];
+
+    CGRect rect = CGRectMake(0, 0, optimalSize.width, optimalSize.height);
     
     [self textTypeWithFrame:rect];
 }
@@ -263,7 +379,6 @@ static  CGFloat _ContentSpace = 70.0f;//内容距边界间隙
     if (rect.size.width < 30)rect.size.width = 30.0f;
         rect.origin.y = 20;//文字离顶部距离为20
     
-    
     if (self.isRight) {
         rect.origin.x = SCREEN_WIDTH - rect.size.width - _ContentSpace;
     }else{
@@ -271,14 +386,35 @@ static  CGFloat _ContentSpace = 70.0f;//内容距边界间隙
     }
     
     self.messageLabel.frame = rect;
-    self.backgourdImageView.frame = CGRectMake(rect.origin.x - _leftOrRight, rect.origin.y/2.0f - _topOrButtomSpace + 1 , rect.size.width + _leftOrRight*2, rect.size.height+ rect.origin.y + _topOrButtomSpace);
+    
+    //偏差值
+    CGFloat deviationValue = self.isRight?  5.0f : - 5.0f;
+    
+    self.backgourdImageView.frame = CGRectMake(rect.origin.x - _leftOrRight + deviationValue, rect.origin.y/2.0f - _topOrButtomSpace + 1 , rect.size.width + _leftOrRight*2, rect.size.height+ rect.origin.y + _topOrButtomSpace);
+    
 }
+
 ///////////////////////////////////
 
+//计算音频长度
+- (CGFloat)contentWithTime:(NSTimeInterval)time{
+    
 
+    CGFloat width = CONETNT_MIN_WIDTH + 10 + (time/60.0f)*CONTENT_WIDTH;
+    
+    if (width > CONTENT_WIDTH) {
+        width = CONTENT_WIDTH;
+    }
+    
+    return width;
+}
 
 //计算图片内容大小
 + (CGRect)contentImageRect:(UIImage *)image{
+    
+    if (!image) {
+        return  CGRectMake(0, 0, CONTENT_WIDTH, CONTENT_WIDTH);
+    }
     
     CGRect rect = CGRectZero;
     CGFloat radio = image.size.height/image.size.width;
@@ -308,15 +444,25 @@ static  CGFloat _ContentSpace = 70.0f;//内容距边界间隙
     switch (meesage.type) {
         case DGMessageTypeText:
         {
-            CGRect rect = [meesage.content boundingRectWithSize:CGSizeMake(CONTENT_WIDTH, MAXFLOAT) options:NSStringDrawingUsesLineFragmentOrigin attributes:@{NSFontAttributeName : [UIFont systemFontOfSize:TEXT_FONT]} context:nil];
-            height = rect.size.height + _topOrButtomSpace*2 + 40;
+
+            NSString *transformStr = [HtmlString transformString:meesage.content];
+            RCLabelComponentsStructure *componentsDS = [RCLabel extractTextStyle:transformStr];
+            
+            RCLabel * label = [[RCLabel alloc] initWithFrame:CGRectMake(20, 20, CONTENT_WIDTH, 300)];
+            label.componentsAndPlainText = componentsDS;
+            CGSize optimalSize = [label optimumSize:YES];
+            CGRect rect = CGRectMake(0, 0, optimalSize.width,optimalSize.height);
+            
+            
+            height = rect.size.height + _topOrButtomSpace *2 + 40;
             
         }
             break;
             
         case DGMessageTypeImage:
         {
-            UIImage * image = [UIImage imageWithContentsOfFile:meesage.content];
+            
+            UIImage * image = [UIImage imageWithContentsOfFile:meesage.content]? :[UIImage imageNamed:UPDATA_FAIL_IMAGE];
             
             CGRect imageRect =  [self contentImageRect:image];
             
@@ -329,15 +475,7 @@ static  CGFloat _ContentSpace = 70.0f;//内容距边界间隙
             
         case DGMessageTypeVideo:
         {
-            
-            NSURL * url = [NSURL fileURLWithPath:meesage.content];
-            
-            UIImage * image = [DGMessageImageView thumbnailImageForVideo:url atTime:0];
-                        
-            CGRect imageRect =  [self contentImageRect:image];
-            
-            height = imageRect.size.height + 20;
-
+            height = _videoHeight +20;
         }
             
             break;
@@ -349,6 +487,8 @@ static  CGFloat _ContentSpace = 70.0f;//内容距边界间隙
             break;
             
         case DGMessageTypeDate:
+            
+            height = _dateTypeHeight;
             
             break;
             
@@ -363,15 +503,22 @@ static  CGFloat _ContentSpace = 70.0f;//内容距边界间隙
 }
 
 
+#pragma mark - RCLabelDelegate
+- (void)RCLabel:(id)RCLabel didSelectLinkWithURL:(NSString*)url{
+    if ([self.delegate respondsToSelector:@selector(RCLabel:didSelectLinkWithURL:)]) {
+        [self.delegate RCLabel:RCLabel didSelectLinkWithURL:url];
+    }
+}
+
 - (void)setSelected:(BOOL)selected animated:(BOOL)animated {
     [super setSelected:selected animated:animated];
 }
 
 
 - (void)dealloc{
-    [self.messageLabel removeObserver:self forKeyPath:@"text"];
+    [self.messageLabel removeObserver:self forKeyPath:@"componentsAndPlainText"];
     _backgourdImageView = nil;
-    _messageLabel =nil;
+    _messageLabel = nil;
     _message = nil;
     _headerImageView = nil;
 }

@@ -11,7 +11,11 @@
 #import <CoreMedia/CoreMedia.h>
 
 
+typedef  void (^download)(UIImage *image);
+
 @interface DGMessageImageView : UIView
+
+@property (strong , nonatomic)download downloadBlock;
 
 @property (assign , nonatomic)BOOL isRight;
 
@@ -20,20 +24,31 @@
 
 @property (assign ,nonatomic)  CGFloat arrowsStart;//箭头起始y位置
 
+//气泡颜色
 @property (strong , nonatomic) UIColor* color;
 
+//气泡边框颜色
 @property (strong , nonatomic) UIColor* borderColor;
 
+//气泡边框宽度
 @property (assign , nonatomic) CGFloat borderWidth;
 
-@property (assign , nonatomic)DGMessageType type;
-
+//音频播放图片
 @property (strong , nonatomic)UIImageView *audioImageView;
 
+//播放图片
 @property (strong , nonatomic) UIImageView * playImageView;
 
+//默认图片
+@property (strong , nonatomic)UIImage * defaultImage;
+
+
+@end
+
+@interface DGMessageImageView (DownloadImage)
 
 //取得视频的第一帧
-+ (UIImage*)thumbnailImageForVideo:(NSURL *)videoURL atTime:(NSTimeInterval)time;
++ (void)thumbnailImageForVideo:(NSURL *)videoURL atTime:(NSTimeInterval)time withImage:(download)download;
+
 
 @end

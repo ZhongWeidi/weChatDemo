@@ -11,20 +11,18 @@
 #import "MessageInfo.h"
 
 
-#define CONTENT_WIDTH  ([UIScreen mainScreen].bounds.size.width - 100.0f) //内容最大宽度
-#define IMAGE_MAX_WIDTH   ([UIScreen mainScreen].bounds.size.width - 200.0f)//图片最大宽度
-#define CONETNT_MIN_WIDTH 50.0f //内容最小宽度
-#define CONETNT_MAX_HEIGHT 40.0f //内容最小高度
-#define TEXT_FONT         15.0f //字体大小
 
 
-@class DGChatTableViewCell,DGMessageImageView;
+@class DGChatTableViewCell,DGMessageImageView,RCLabel;
 
 @protocol  DGChatTableViewCellDelegate <NSObject>
 
 @optional
 
 - (void)dgTableView:(UITableView *)tableView selectedChatTableViewWithIndexPath:(NSIndexPath *)indexPath;
+
+//点击文本中的链接时触发
+- (void)RCLabel:(id)RCLabel didSelectLinkWithURL:(NSString*)url;
 
 @end
 
@@ -38,22 +36,34 @@
 
 @property (weak , nonatomic) id <DGChatTableViewCellDelegate> delegate;
 
-
 //是否靠右
 @property (assign , nonatomic) BOOL isRight;
 
+//消息类型
 @property (assign , nonatomic) DGMessageType messageType;
 
+//图片内容以及气泡语音内容
+@property (strong , nonatomic)DGMessageImageView * backgourdImageView;
 
-@property (strong , nonatomic)DGMessageImageView * backgourdImageView;//背景图
+//消息文本
+@property (strong  , nonatomic)RCLabel * messageLabel;
 
-@property (strong  , nonatomic)UILabel * messageLabel;
-
-
+//头像
 @property (strong , nonatomic) UIImageView * headerImageView;
 
 
+//时间分割线
+@property (strong , nonatomic) UILabel * timeSeparatorLabel;
 
+//音频已读标示
+@property (strong , nonatomic)UIView * audioAlreadyIcon;
+
+//音频持续时长
+@property (strong , nonatomic)UILabel * audioDurationLabel;
+
+
+
+//返回Cell的行高
 + (CGFloat)heightForRowAtIndexPath:(NSIndexPath *)indexPath withMessageModel:(MessageInfo *)meesage;
 
 
