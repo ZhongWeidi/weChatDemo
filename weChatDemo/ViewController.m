@@ -25,6 +25,8 @@
     
     //分支操作
     
+    //测试回滚
+    
     
     UserInfo * u1 = [UserInfo new];
     u1.name = @"惠明";
