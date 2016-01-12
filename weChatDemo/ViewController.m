@@ -29,6 +29,8 @@
     
     //分支测试1
     
+    //分支测试2
+    
     
     UserInfo * u1 = [UserInfo new];
     u1.name = @"惠明";
