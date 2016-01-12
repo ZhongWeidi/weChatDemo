@@ -23,6 +23,9 @@
 - (void)viewDidLoad {
     [super viewDidLoad];
     
+    //分支操作
+    
+    
     UserInfo * u1 = [UserInfo new];
     u1.name = @"惠明";
     u1.headerImagePath = @"1.jpg";
